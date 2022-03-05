@@ -19,8 +19,9 @@ int main(int argc, char* argv[])
 
   FILE* fp = fopen(argv[1], "r");
   char puzzle[128];
-  int total_solved = 0;
-  int total = 0;
+  int total_solved = 0;   //解决个数
+  int total = 0;  //测试样例数
+  //选择解数独方案
   bool (*solve)(int) = solve_sudoku_basic;
   if (argv[2] != NULL)
     if (argv[2][0] == 'a')

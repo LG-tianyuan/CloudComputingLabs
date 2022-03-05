@@ -8,12 +8,14 @@
 
 int neighbors[N][NEIGHBOR];
 
+//标志所在行、列、大方格满足条件
 static void mark_adjacent(bool adjacent[ROW][COL], int row, int col)
 {
   for (int i = 0; i < NUM; ++i) {
     adjacent[row][i] = true;
     adjacent[i][col] = true;
   }
+  //[top,left],所在大方格的第一个小方格
   int top = (row/3)*3;
   int left = (col/3)*3;
   adjacent[top][left] = true;
@@ -27,6 +29,7 @@ static void mark_adjacent(bool adjacent[ROW][COL], int row, int col)
   adjacent[top+2][left+2] = true;
 }
 
+//collect neighbors，范围是[<ROW,<COL], myneighbors记录的是为true的neighbor[y,x]的序号（col*y+x）
 static void collect_neighbors(const bool adjacent[ROW][COL], int row, int col, int myneighbors[NEIGHBOR])
 {
   int n = 0;
@@ -41,6 +44,7 @@ static void collect_neighbors(const bool adjacent[ROW][COL], int row, int col, i
   assert(n == NEIGHBOR);
 }
 
+//print neighbors
 static void print_neighbors(const bool adjacent[ROW][COL], int row, int col, int myneighbors[NEIGHBOR])
 {
   for (int y = 0; y < ROW; ++y) {
@@ -58,7 +62,8 @@ static void print_neighbors(const bool adjacent[ROW][COL], int row, int col, int
   puts("\n");
 }
 
-/*public*/ void init_neighbors()
+/*public*/ //初始化neighbors
+void init_neighbors()
 {
   for (int row = 0; row < ROW; ++row) {
     for (int col = 0; col < COL; ++col) {
@@ -75,6 +80,7 @@ static void print_neighbors(const bool adjacent[ROW][COL], int row, int col, int
   }
 }
 
+//check，检验是否已解决
 bool solved()
 {
   for (int row = 0; row < ROW; ++row) {
