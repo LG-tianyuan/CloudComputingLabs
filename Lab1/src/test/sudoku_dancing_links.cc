@@ -254,11 +254,11 @@ struct Dance
     }
 };
 
-bool solve_sudoku_dancing_links(int unused)
-{
-  Dance d(board);
-  return d.solve();
-}
+// bool solve_sudoku_dancing_links(int unused)
+// {
+//   Dance d(board);
+//   return d.solve();
+// }
 
 bool solve_sudoku_dancing_links1(int *tmp)
 {
