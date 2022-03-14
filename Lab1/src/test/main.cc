@@ -18,7 +18,6 @@ using namespace std;
 
 pthread_mutex_t visit_buf = PTHREAD_MUTEX_INITIALIZER;    //缓冲区锁
 pthread_mutex_t lock_print = PTHREAD_MUTEX_INITIALIZER;   //打印锁
-//pthread_mutex_t lock_file = PTHREAD_MUTEX_INITIALIZER;    //文件队列锁
 pthread_cond_t empty = PTHREAD_COND_INITIALIZER;          
 pthread_cond_t full = PTHREAD_COND_INITIALIZER;           
 pthread_cond_t *print_order;                              //控制输出顺序
@@ -33,7 +32,6 @@ int cnt = 0;         //缓冲区剩余题目个数
 int use_index = 0;        
 int fill_index = 0;       
 int cur_print = 0;      //当前打印者编号
-int finish_num = 0;     //当前打开的文件 线程完成的数量
 int **ans;          //答案
 int len;            //数独问题数量
 int ans_in;
@@ -128,12 +126,6 @@ void inputfile() {
 void put(char* value)
 {
     buf[fill_index] = value;
-    // for(int i=0;i<81;i++)
-    // {
-    //   buf[fill_index][i] = value[i];
-    //   printf("%c",buf[fill_index][i]);
-    // }
-    // printf("\n");
     fill_index = (fill_index + 1) % n_pthread;
     cnt++;
     //printf("Put successfully!\n");
@@ -211,7 +203,7 @@ void *solver(void *arg)
 int main(int argc, char *argv[])
 {
     inputfile();
-    init(4);
+    init(7);
     int64_t start = now();
     for (int i = 0; i < n_pthread; ++i){
         pthread_create(&tid[i], NULL, solver, NULL);        //解题
@@ -233,14 +225,14 @@ int main(int argc, char *argv[])
 
     int64_t end = now();
     double sec = (end-start)/1000000.0;
-    printf("%f sec %f ms each\n", sec, 1000*sec/len);
+    //printf("%f sec %f ms each\n", sec, 1000*sec/len);
 
-    // for (int i = 0; i < len; i++) 
-    // {
-    //   for (int j = 0; j < 81; j++) 
-    //       printf("%d", ans[i][j]);
-    //   printf("\n");
-    // }
+    for (int i = 0; i < len; i++) 
+    {
+      for (int j = 0; j < 81; j++) 
+          printf("%d", ans[i][j]);
+      printf("\n");
+    }
 
     program_end();
     return 0;
