@@ -188,20 +188,23 @@ Advanced_Test(){
 		touch ./${Result}
 	fi
 
-	screen -S $1 -X stuff "stdbuf -oL ./${Exe_Prog} > ./${Result}^M"
+	#screen -S $1 -X stuff "stdbuf -oL ./${Exe_Prog} > ./${Result}^M"
+	cmd="cat ${test_data_txt} | ./${Exe_Prog} > ./${Result}"
+	eval ${cmd}
 	while read -r test_data
 	do
 		Answer_Line=`expr ${Answer_Line} + $(cat ${test_data} | wc -l)`
 		screen -S $1 -X stuff "${test_data}^M"
+		#echo "Lab1"
 	done < $2
-	
+	#echo "Lab1.2"
 	while read -r answer_data
 	do
 		cat ${Current_Folder}/${answer_data} >> ${Current_Folder}/${Answer}
 	done < $3
 
 	sleep 30
-	screen -S $1 -X stuff "^C^M"
+	# screen -S $1 -X stuff "^C^M"
 	screen -S $1 -X quit
 
 	diff_line=$(diff -ab ./${Result} ./${Answer} | wc -l)

@@ -85,6 +85,9 @@ void program_end()
     for (int i = 0; i < n_pthread; ++i)
         free(buf[i]);
     free(buf);
+    for (int i = 0; i < len; ++i)
+        free(ans[i]);
+    free(ans);
     //printf("3\n");
     // for (int i=0;i<len;i++)
     //   free(A[i]);
