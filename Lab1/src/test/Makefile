@@ -7,6 +7,9 @@ sudoku_test:main_test.o neighbor.o sudoku_basic.o sudoku_dancing_links.o
 v2:main_v2.o neighbor.o sudoku_basic.o sudoku_dancing_links.o
 	g++ main_v2.o neighbor.o sudoku_basic.o sudoku_dancing_links.o -lpthread -O2 -o sudoku_solve
 
+v3:main_v3.o neighbor.o sudoku_basic.o sudoku_dancing_links.o
+	g++ main_v3.o neighbor.o sudoku_basic.o sudoku_dancing_links.o -lpthread -O2 -o sudoku_solve
+
 basic:main_original.cc neighbor.cc sudoku_basic.cc sudoku_min_arity.cc sudoku_min_arity_cache.cc sudoku_dancing_links.cc
 	g++ -O2 -o $@ $^
 
