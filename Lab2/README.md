@@ -67,7 +67,7 @@ What you need to do:
 **basic version**:
 
 * A search service: use a specific url to get some data from the server that does not come from a file stored on the file system.
-  * The url don't have query string, e.g. `http://localhost:8080/check`;
+  * The url don't have query string, e.g. `http://localhost:8080/api/check`;
   * Send response with plain text content.
 
 * Static files access: use a specific url to access a text file stored on the file system.
@@ -332,7 +332,9 @@ all data you need to upload are two key/value pairs: `id: {value1}` & `name: {va
 
 > For standardized testing, output in the order of `id`, `name`.
 
-Your server should check the data. In default case, the server should echo the data from the client. If the data format is error, send content error messge. 
+Your server should check the data. In default case, the server should echo the data from the client. 
+
+If the data format is error, e.g., `id=1&name`, `id=1` or `id=1&foo=a`, send content error message.
 
 For **basic** version:
 
