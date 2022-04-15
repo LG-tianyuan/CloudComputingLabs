@@ -67,7 +67,7 @@ What you need to do:
 **basic version**:
 
 * A search service: use a specific url to get some data from the server that does not come from a file stored on the file system.
-  * The url don't have query string, e.g. `http://localhost:8080/check`;
+  * The url don't have query string, e.g. `http://localhost:8080/api/check`;
   * Send response with plain text content.
 
 * Static files access: use a specific url to access a text file stored on the file system.
@@ -276,6 +276,9 @@ Content-Length: 101
 
 [{"id":"1","name":"Foo"},{"id":"2","name":"Bar"},{"id":"3","name":"Foo Bar"},{"id":"4","name":"Foo"}]
 ```
+
+> For standardized testing, output JSON data in one line without unnecessary spaces.
+
 **2) access web services for getting data**
 
 For **basic** version:
@@ -319,13 +322,19 @@ Content-Length: 25
 [{"id":"1","name":"Foo"}] 
 ```
 
+> For standardized testing, output JSON data in one line without unnecessary spaces.
+
 #### 3.7.2 Using POST method
 
 **access web services for uploading data**
 
 all data you need to upload are two key/value pairs: `id: {value1}` & `name: {value2}`.
 
-Your server should check the data. In default case, the server should echo the data from the client. If the data format is error, send content error messge. 
+> For standardized testing, output in the order of `id`, `name`.
+
+Your server should check the data. In default case, the server should echo the data from the client. 
+
+If the data format is error, e.g., `id=1&name`, `id=1` or `id=1&foo=a`, send content error message.
 
 For **basic** version:
 
@@ -378,6 +387,8 @@ Content-Length: 23
 
 {"id":"1","name":"Foo"}
 ```
+
+> For standardized testing, output JSON data in one line without unnecessary spaces.
 
 #### 3.7.3 Other method
 
