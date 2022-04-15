@@ -14,10 +14,6 @@
 #include <malloc.h>
 #include <pthread.h>
 #include <sys/time.h>
-#include <unistd.h>
-#include <stdlib.h>
-#include <list>
-#include <vector>
 #include <queue>
 #include "sudoku.h"
 using namespace std;
@@ -230,7 +226,8 @@ void* output(void* args)
 
 int main(int argc, char *argv[])
 {
-    int num=7;
+    int cpu_num=sysconf(_SC_NPROCESSORS_CONF);
+    int num= cpu_num>1 ? cpu_num-1 : 1;
     if (argv[1] != NULL)
     {
         num = atoi(argv[1])>0 ? atoi(argv[1]) : num;

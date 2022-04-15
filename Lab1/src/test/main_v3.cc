@@ -14,9 +14,6 @@
 #include <malloc.h>
 #include <pthread.h>
 #include <sys/time.h>
-#include <unistd.h>
-#include <stdlib.h>
-#include <list>
 #include <vector>
 #include <queue>
 #include "sudoku.h"
@@ -191,11 +188,13 @@ void *solver(void *arg)
 
 int main(int argc, char *argv[])
 {
-    int num=7;
+    int cpu_num=sysconf(_SC_NPROCESSORS_CONF);
+    int num= cpu_num>1 ? cpu_num-1 : 1;
     if (argv[1] != NULL)
     {
         num = atoi(argv[1])>0 ? atoi(argv[1]) : num;
     }
+    //printf("%d\n",num);
     init(num);
     int64_t start = now();
     for (int i = 0; i < n_pthread; ++i){
@@ -211,7 +210,7 @@ int main(int argc, char *argv[])
 
     int64_t end = now();
     double sec = (end-start)/1000000.0;
-    printf("%f sec %f ms each\n", sec, 1000*sec/len);
+    //printf("%f sec %f ms each\n", sec, 1000*sec/len);
 
     program_end();
     return 0;

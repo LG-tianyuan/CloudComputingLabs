@@ -1,8 +1,8 @@
-#include <iostream>
-#include <vector>
-#include <queue>
-#include <stdio.h>
-using namespace std;
+// #include <iostream>
+// #include <vector>
+// #include <queue>
+// #include <stdio.h>
+// using namespace std;
 
 // char **buf;
 // int fill_index=0;
@@ -44,23 +44,33 @@ using namespace std;
 // 	}
 
 // }
-queue<char*> Q;
-void myfunc()
-{
-	char *a = (char*)malloc(5);
-	for(int i=0;i<5;i++)
-	{
-		a[i]=i;
-	}
-	Q.push(a);
-}
+// queue<char*> Q;
+// void myfunc()
+// {
+// 	char *a = (char*)malloc(5);
+// 	for(int i=0;i<5;i++)
+// 	{
+// 		a[i]=i;
+// 	}
+// 	Q.push(a);
+// }
+// int main()
+// {
+// 	myfunc();
+// 	char *b;
+// 	b = Q.front();
+// 	Q.pop();
+// 	free(b);
+// 	cout<<"Great!"<<endl;
+// 	return 0;
+// }
+
+#include "unistd.h"
+#include <stdio.h>
 int main()
 {
-	myfunc();
-	char *b;
-	b = Q.front();
-	Q.pop();
-	free(b);
-	cout<<"Great!"<<endl;
+	printf("system cpu num is %ld\n", sysconf( _SC_NPROCESSORS_CONF));
+	printf("system enable cpu num is %ld\n", sysconf(_SC_NPROCESSORS_ONLN));
 	return 0;
 }
+	
