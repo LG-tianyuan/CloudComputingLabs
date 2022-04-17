@@ -1,6 +1,6 @@
 /*
  * @Author: LG.tianyuan
- * @Date: 2022-04-13
+ * @Date: 2022-04-16
 */
 
 #include <stdio.h>
@@ -66,34 +66,25 @@ char *get_file_type(const char *name)
     return "text/plain";
 }
 
-
-int read_line(int sock, char *buf, int size)
+int read_line(char* buffer,char* line)
 {
-    int i = 0;
-    char c = '\0';
-    int n;
-    while((i < size ) && (c != '\n')) {   
-        //设置定时器
-        struct timeval timeout = {0, 1};
-        int ret=setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout));
-        n = recv(sock, &c, 1, 0);
-        if(n > 0) {        
-          if (c == '\r') {        
-            n = recv(sock, &c, 1, MSG_PEEK); 
-            if ((n > 0) && (c == '\n')) {              
-              recv(sock, &c, 1, 0);
-            } else {                       
-              c = '\n';
-            }
-          }
-          buf[i] = c;
-          i++;
-        } else {    
-            c = '\n';
-        }
+  if(strcmp(buffer,"")==0) return 0; 
+  int len = 0;
+  char *ptr = strchr(buffer,'\n');
+  if(ptr != NULL)
+  {
+    if(ptr == buffer)
+    {
+      strcpy(line,"\n");
+      len = 1;
     }
-    buf[i] = '\0';
-    return i;
+    else
+    {
+      strncpy(line, buffer, ptr-buffer);
+      len = strlen(line);
+    }
+  }
+  return len;
 }
 
 int get_name_id(char *str, char *name, char *id)
@@ -166,12 +157,10 @@ int match_name_id(char* name, char* id, char* res)
       char temp[1024]={'\0'};
       while(1)
       {
-        // printf("%s\n",ptrl);
         ptrr = strchr(ptrl,'}');
         if(ptrr == NULL) break;
         strncpy(temp,ptrl+1,ptrr-ptrl);
         ptr = strstr(temp,name);
-        // printf("%s\n",temp);
         if(ptr != NULL)
         {
           if(flag) 
@@ -450,6 +439,7 @@ void get_method(int cfd, char* path, char* protocol, int flag, char* name, char*
   {
     char* file = path+1; 
     if(strlen(file)==0){
+      // printf("path empty\n");
       file="index.html";
     }
 
@@ -555,21 +545,32 @@ void *http_handler(void *argc)
 {
   int *cfd_ptr = (int *)argc;
   int cfd = *cfd_ptr;
-  char line[1024] = {'\0'};
-  // int len = read_line(cfd,line,sizeof(line));
-  int len = 0;
-  while( (len = read_line(cfd,line,sizeof(line))) > 0 ) //pipeline
+  struct timeval timeout = {0, 1000};
+  int ret=setsockopt(cfd, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout));
+  char temp[1024] = {'\0'};
+  char buffer[10240] = {'\0'};
+  int len = recv(cfd,temp,1024,0);
+  strcat(buffer,temp);
+  while(len == 1024)
+  {
+    len = recv(cfd,temp,1024,0);
+    strcat(buffer,temp);
+  }
+  char line[1024]={'\0'};
+  len = read_line(buffer,line);
+  int bias = len + 1;
+  if(len > 0)
   {
     //http请求报文头部形如“GET /index.html HTTP/1.1”
     char method[12],path[1024],protocol[12];
     sscanf(line,"%s %s %s",method,path,protocol); //sscanf()从字符串读取格式化输入
-
     int message_len = 0;
     char content_type[50]={'\0'};
     while(1)  //获取报文长度并将报文头部信息全部读取
     {
       char buf[1024] = {'\0'};
-      int buf_len = read_line(cfd,buf,sizeof(buf));
+      int buf_len = read_line(buffer+bias,buf);
+      bias = bias + buf_len + 1;
       if(strncasecmp("Content-Length",buf,14)==0) //strncasecmp()比较字符串前n个字符
       {
         strcpy(buf,buf+16);
@@ -579,27 +580,30 @@ void *http_handler(void *argc)
       {
         strcpy(content_type,buf+14);
       }
+      if(strncasecmp("GET",buf,3)==0)
+      {
+        char name[100]={'\0'},id[100]={'\0'};
+        int flag = get_name_id(path,name,id);
+        get_method(cfd,path,protocol,flag,name,id);
+        sscanf(buf,"%s %s %s",method,path,protocol);
+      }
       if(buf[0] == '\n' || buf_len == 0)
       {
         break;
       }
     }
-
     //GET方法
     if(strncasecmp("GET",line,3)==0)
     {
       char name[100]={'\0'},id[100]={'\0'};
       int flag = get_name_id(path,name,id);
-      // printf("\n%s\n%s\n%s\n",path,id,name);
       get_method(cfd,path,protocol,flag,name,id);
     }
     else if(strncasecmp("POST",line,4)==0)  //POST方法
     {
-      char text[1024] = {'\0'};
-      int length = read_line(cfd,text,message_len);
-      char* tmp = strrchr(content_type,'\n');//去掉content_type末尾的换行符
+      char* tmp = strrchr(content_type,'\r');//去掉content_type末尾的回车符
       *tmp = '\0';
-      post_method(cfd,path,text,content_type,protocol);
+      post_method(cfd,path,buffer+bias-1,content_type,protocol);
     }
     else
     {
@@ -608,12 +612,7 @@ void *http_handler(void *argc)
   }
   close(cfd);
   free(cfd_ptr);
-}
-
-void *proxy_handler(void* args)
-{
-  int *cfd_ptr = (int *)argc;
-  int cfd = *cfd_ptr;
+  // printf("\nclose!\n");
 }
 
 int main(int argc, char *argv[])
