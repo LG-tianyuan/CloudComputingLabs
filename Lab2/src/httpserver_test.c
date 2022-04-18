@@ -1,3 +1,8 @@
+/*
+ * @Author: LG.tianyuan
+ * @Date: 2022-04-18
+*/
+
 #include <stdio.h>
 #include <errno.h>
 #include <unistd.h>
@@ -12,10 +17,22 @@
 #include <pthread.h>
 #include <getopt.h>
 #include <regex.h>
+#include <netdb.h>
+#include <time.h>
 #include "threadpool.h"
 
 static const char *data_format1="^id=[0-9]+&name=[_0-9a-zA-Z]+$";
 static const char *data_format2="^\\{\"id\":\"[0-9]+\",\"name\":\"[_0-9a-zA-Z]+\"\\}$";
+
+typedef struct {
+  char* psa;
+  int* cfd;
+} ConnectInfo;
+
+typedef struct {
+  int cfd_down;
+  int cfd_up;
+} cfdInfo;
 
 // 通过文件名获取文件的类型
 char *get_file_type(const char *name)
@@ -199,7 +216,7 @@ int match_name_id(char* name, char* id, char* res)
         strncpy(temp,ptr1,ptr2-ptr1);
         strcat(res,"[{\"id\":");
         strcat(res,temp);
-        strcat(res,"]");
+        strcat(res,"}]");
         return 1;
       }
       else
@@ -320,7 +337,7 @@ void send_response_head(int cfd, int status, char *title, char *type, char* prot
   send(cfd, "\r\n", 2, 0);
 }
 
-void response_with_html(int cfd, int status, char *title, char *text, char* protocol)
+void response_with_html(int cfd, int status, char *title, char *text, char* protocol, int flag)
 {
   char buf[1024] = {0};
 
@@ -333,7 +350,10 @@ void response_with_html(int cfd, int status, char *title, char *text, char* prot
   sprintf(buf+strlen(buf), "<hr>\n</body>\n</html>\n");
   
   // 头部
-  send_response_head(cfd, status, title, "text/html", protocol, strlen(buf));
+  if(flag)
+  {
+    send_response_head(cfd, status, title, "text/html", protocol, strlen(buf));
+  }
   
   send(cfd, buf, strlen(buf), 0);
 }
@@ -382,7 +402,7 @@ void notfound(int cfd, char* protocol)
   struct stat st;
   int ret = stat(file, &st);
   if(ret == -1) { 
-    response_with_html(cfd, 404, "Not Found", "404 Not Found", protocol);    
+    response_with_html(cfd, 404, "Not Found", "404 Not Found", protocol, 1);    
     return;
   }
   if(S_ISREG(st.st_mode)) { // 判断是否是一个文件        
@@ -391,7 +411,7 @@ void notfound(int cfd, char* protocol)
     // 发送文件内容
     if(!send_response_file(cfd, file))
     {
-      response_with_html(cfd, 404, "Not Found", "404 Not Found", protocol); 
+      response_with_html(cfd, 404, "Not Found", "404 Not Found", protocol, 0); 
     }
   }
 }
@@ -616,10 +636,6 @@ void *http_handler(void *argc)
     }
     else if(strncasecmp("POST",line,4)==0)  //POST方法
     {
-      // printf("\nyes\n%s\n",buffer);
-      // char text[1024] = {'\0'};
-      // int length = read_line(buffer,text);
-      // printf("\n%s\n",text);
       // printf("\nhere::%s\n",content_type);
       char* tmp = strrchr(content_type,'\r');//去掉content_type末尾的回车符
       *tmp = '\0';
@@ -630,30 +646,151 @@ void *http_handler(void *argc)
     {
       notimplemented(cfd,protocol);
     }
-    // len = read_line(buffer,line);
-    // if(len<=0)
-    // {
-    //   len = recv(cfd,line,1024,0);
-    //   if(len<=0)
-    //   {
-    //     break;
-    //   }
-    //   else
-    //   {
-    //     strcat(buffer,line);
-    //   }
-    // }
   }
   close(cfd);
   free(cfd_ptr);
-  // printf("\nclose!\n");
+}
+
+void* client_send(void* args)
+{
+  cfdInfo* para = (cfdInfo*) args;
+  char *buffer = malloc(10240*sizeof(char));
+  struct timeval timeout = {3,0};
+  int ret=setsockopt(para->cfd_down, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout));
+  while(1)
+  {
+    int len = recv(para->cfd_down,buffer,10240,0);
+    if(len > 0)
+    {
+      // printf("%s",buffer);
+      send(para->cfd_up,buffer,len,0);
+    }
+    else
+    {
+      break;
+    }
+  }
+  free(buffer);
+}
+
+void* client_recv(void* args)
+{
+  cfdInfo* para = (cfdInfo*) args;
+  char *buffer = malloc(40960*sizeof(char));
+  struct timeval timeout = {3,0};
+  int ret=setsockopt(para->cfd_up, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout));
+  int flag = 0;
+  while(1)
+  {
+    int len = recv(para->cfd_up,buffer,40960,0);
+    if(len > 0)
+    {
+      flag = 1;
+      int len1 = send(para->cfd_down,buffer,len,0);
+      // printf("\n%d,%d\n",len,len1);
+    }
+    else
+    {
+      if(!flag) 
+      {
+        response_with_html(para->cfd_down, 504, "Proxy Time-out", "504 Gateway/Proxy Time-out", "HTTP/1.1", 0);
+      }
+      break;
+    }
+  }
+  free(buffer);
+}
+
+void* proxy_handler(void* args)
+{
+  ConnectInfo* para = (ConnectInfo*) args;
+  char* psa = para->psa;
+  int* cfd_ptr = para->cfd;
+  int cfd = *cfd_ptr;
+  char* ptr = strrchr(psa,':');
+  char addr[40]={'\0'},pt[40]={'\0'};
+  if(ptr != NULL)
+  {
+    strncpy(addr,psa,ptr-psa);
+    strcpy(pt,ptr+1);
+  }
+  else
+  {
+    strcpy(addr,psa);
+    strcpy(pt,"80");
+  }
+  
+  // printf("\n%s\n%s\n",addr,pt);
+
+  if(inet_addr(addr)==-1)
+  {
+    if(strlen(addr)<7) //未指定端口
+    {
+      strcpy(addr,psa);
+      strcpy(pt,"80");
+    }
+    ptr = strchr(addr,'/');
+    strcpy(addr,ptr+2);
+    struct hostent *host = gethostbyname(addr);
+    if(!host)
+    {
+      perror("host:");
+      exit(1);
+    }
+    strcpy(addr,inet_ntoa(*(struct in_addr*)host->h_addr_list[0]));
+    printf("%s\n",addr);
+  }
+
+  struct sockaddr_in remote_addr;
+  memset(&remote_addr,0,sizeof(remote_addr));
+  remote_addr.sin_family=AF_INET;
+  remote_addr.sin_addr.s_addr=inet_addr(addr);
+  int port=atoi(pt);
+  remote_addr.sin_port=htons(port);
+
+  int sockfd;
+  if((sockfd=socket(AF_INET,SOCK_STREAM,0))<0)
+  {  
+    perror("socket");
+  }
+
+  if(connect(sockfd,(const struct sockaddr *)&remote_addr,sizeof(remote_addr))<0)
+  {
+    perror("connect");
+    exit(1);
+  }
+
+  cfdInfo cinfo;
+  cinfo.cfd_down=cfd;
+  cinfo.cfd_up=sockfd;
+
+  // pool_add_worker(client_send,&cinfo);
+  // pool_add_worker(client_recv,&cinfo);
+  pthread_t th1,th2;
+  printf("begin\n");
+  if(pthread_create(&th1, NULL, client_send, &cinfo)!=0)
+  {
+    perror("pthread_create failed");
+    pthread_exit(NULL);
+  }
+  if(pthread_create(&th2, NULL, client_recv, &cinfo)!=0)
+  {
+    perror("pthread_create failed");
+    pthread_exit(NULL);
+  }
+  pthread_join(th1, NULL);
+  // printf("Finish1!\n");
+  pthread_join(th2, NULL);
+  // printf("Finish2!\n");
+  close(cfd);
+  close(sockfd);
 }
 
 int main(int argc, char *argv[])
 {
   int port=8888,num_thread=2;
   char *ip;
-  char *proxy_server;
+  char *psa;
   if(argc < 7)
   {
     printf("Command invalid! Please check your command and try again!\n");
@@ -692,13 +829,12 @@ int main(int argc, char *argv[])
         }
         else if(strcmp("--proxy", argv[i]) == 0)
         {
-          proxy_server = argv[++i];
-          if(!proxy_server) {
+          psa = argv[++i];
+          if(!psa) {
               fprintf(stderr, "expected argument after --proxy\n");
           }
         }
   }
-
   //创建套接字
   struct sockaddr_in server_addr;
   bzero(&server_addr, sizeof(server_addr));
@@ -737,7 +873,18 @@ int main(int argc, char *argv[])
       perror("Error: accept");
       return 1;
     }
-    pool_add_worker(http_handler, (void *)client_sockfd);
+    if(psa != NULL)
+    {
+      printf("\n%s\n",psa);
+      ConnectInfo cinfo;
+      cinfo.psa = psa;
+      cinfo.cfd = client_sockfd;
+      pool_add_worker(proxy_handler,(void *)&cinfo);
+    }
+    else
+    {
+      pool_add_worker(http_handler, (void *)client_sockfd);
+    }
   } 
 
   pool_destroy();

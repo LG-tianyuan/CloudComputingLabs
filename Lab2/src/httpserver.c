@@ -610,12 +610,6 @@ void *http_handler(void *argc)
   free(cfd_ptr);
 }
 
-void *proxy_handler(void* args)
-{
-  int *cfd_ptr = (int *)argc;
-  int cfd = *cfd_ptr;
-}
-
 int main(int argc, char *argv[])
 {
   int port=8888,num_thread=2;
