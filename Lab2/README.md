@@ -272,9 +272,9 @@ For **advanced** version:
 user@linux:~/http-server$ curl -i -X GET http://localhost:8080/data.json
 HTTP/1.1 200 OK
 Content-Type: application/json
-Content-Length: 101
+Content-Length: 93
 
-[{"id":"1","name":"Foo"},{"id":"2","name":"Bar"},{"id":"3","name":"Foo Bar"},{"id":"4","name":"Foo"}]
+[{"id":1,"name":"Foo"},{"id":2,"name":"Bar"},{"id":3,"name":"Foo Bar"},{"id":4,"name":"Foo"}]
 ```
 
 > For standardized testing, output JSON data in one line without unnecessary spaces.
@@ -308,6 +308,8 @@ For **advanced** version:
 | /api/search?[id=`value1`&name=`value2`] | if no object matches, return all objects <br /> in `/data/not_found.json` | 404 |application/json |
 | any other error paths | /{static files}/404.html | 404 | text/html |
 
+> The query string format is a regular expression: `id=[0-9]+&name=[a-zA-Z0-9]+`.
+
 > If you do not want to parse json file, you could store the data in memory instead of reading file every time.
 
 E.g.:
@@ -317,9 +319,9 @@ user@linux:~/http-server$ curl -i -G -d 'id=1&name=Foo' \
 > -X GET http://localhost:8080/api/search
 HTTP/1.1 200 OK
 Content-Type: application/json
-Content-Length: 25
+Content-Length: 23
 
-[{"id":"1","name":"Foo"}] 
+[{"id":1,"name":"Foo"}] 
 ```
 
 > For standardized testing, output JSON data in one line without unnecessary spaces.
@@ -328,7 +330,7 @@ Content-Length: 25
 
 **access web services for uploading data**
 
-all data you need to upload are two key/value pairs: `id: {value1}` & `name: {value2}`.
+All data you need to upload are two key/value pairs: `id: {value1}` & `name: {value2}`.
 
 > For standardized testing, output in the order of `id`, `name`.
 
@@ -339,6 +341,8 @@ If the data format is error, e.g., `id=1&name`, `id=1` or `id=1&foo=a`, send con
 For **basic** version:
 
 The client should send requests with `Content-Type: application/x-www-form-urlencoded`.
+
+> The echo data format is a regular expression: `id=[0-9]+&name=[a-zA-Z0-9]+`.
 
 After handling, send response:
 
@@ -378,14 +382,14 @@ After handling, send response:
 E.g.:
 
 ```shell
-user@linux:~/http-server$ curl -i -d '{"id":"1","name":"Foo"}' \
+user@linux:~/http-server$ curl -i -d '{"id":1,"name":"Foo"}' \
 > -H 'Content-Type: application/json' \
 > -X POST http://localhost:8080/api/upload
 HTTP/1.1 200 OK
 Content-Type: application/json
-Content-Length: 23
+Content-Length: 21
 
-{"id":"1","name":"Foo"}
+{"id":1,"name":"Foo"}
 ```
 
 > For standardized testing, output JSON data in one line without unnecessary spaces.
