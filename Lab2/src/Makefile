@@ -11,8 +11,8 @@ clean:
 v2:
 	gcc httpserver_v2.c threadpool.c -O2 -pthread -o httpserver
 
-ceshi:
-	gcc httpserver_test.c threadpool.c -O2 -pthread -o httpserver
+v3:
+	gcc httpserver_v3.c threadpool.c -O2 -pthread -o httpserver
 
 test:
 	gcc test.c -o test

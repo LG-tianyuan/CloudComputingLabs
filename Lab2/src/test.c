@@ -28,7 +28,10 @@ int main(int argc, char *argv[])
   // int ret = inet_addr(text);
   // printf("%d\n",ret);
   char *ptr = strchr(text,'/');
-  strcpy(text,ptr+2);
+  if(ptr!=NULL)
+  {
+    strcpy(text,ptr+2);
+  }
   struct hostent *host = gethostbyname(text);
   if(!host)
   {
