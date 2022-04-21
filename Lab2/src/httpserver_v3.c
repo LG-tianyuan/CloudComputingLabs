@@ -23,8 +23,8 @@
 
 #define MAXSIZE 2000
 
-static const char *data_format1="^id=[0-9]+&name=[_0-9a-zA-Z]+$";
-static const char *data_format2="^\\{\"id\":\"[0-9]+\",\"name\":\"[_0-9a-zA-Z]+\"\\}$";
+static const char *data_format1="^id=[0-9]+&name=[0-9a-zA-Z]+$";
+static const char *data_format2="^\\{\"id\":\"[0-9]+\",\"name\":\"[0-9a-zA-Z]+\"\\}$";
 pthread_mutex_t file_lock = PTHREAD_MUTEX_INITIALIZER;
 
 typedef struct {

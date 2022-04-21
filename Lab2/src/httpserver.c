@@ -19,8 +19,8 @@
 #include <regex.h>
 #include "threadpool.h"
 
-static const char *data_format1="^id=[0-9]+&name=[_0-9a-zA-Z]+$";
-static const char *data_format2="^\\{\"id\":\"[0-9]+\",\"name\":\"[_0-9a-zA-Z]+\"\\}$";
+static const char *data_format1="^id=[0-9]+&name=[0-9a-zA-Z]+$";
+static const char *data_format2="^\\{\"id\":\"[0-9]+\",\"name\":\"[0-9a-zA-Z]+\"\\}$";
 
 // 通过文件名获取文件的类型
 char *get_file_type(const char *name)
