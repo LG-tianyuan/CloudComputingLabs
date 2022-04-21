@@ -25,6 +25,7 @@
 
 static const char *data_format1="^id=[0-9]+&name=[0-9a-zA-Z]+$";
 static const char *data_format2="^\\{\"id\":\"[0-9]+\",\"name\":\"[0-9a-zA-Z]+\"\\}$";
+static const char *data_format3="^(id=[0-9]+)|(name=[0-9a-zA-Z]+)|(id=[0-9]+&name=[0-9a-zA-Z]+)$";
 pthread_mutex_t file_lock = PTHREAD_MUTEX_INITIALIZER;
 
 typedef struct {
@@ -139,21 +140,33 @@ int get_name_id(char *str, char *name, char *id)
     {
       return 0;
     }
+    ptr1 = ptr1 + 1;
+    if(ptr1 == NULL)
+    {
+      return 0;
+    }
+    regex_t reg1;
+    int reg = regcomp(&reg1, data_format3, REG_EXTENDED);
+    if(reg)
+    {
+      regmatch_t pmatch[1];
+      const size_t nmatch = 1;
+      int status = regexec(&reg1, ptr1, nmatch, pmatch, 0);
+      regfree(&reg1);
+      if(status != 0)
+      {
+        return 1;
+      }
+    }
     ptr1 = strstr(str,"id="); //用strstr查找子串的首次位置
     char *ptr2 = strchr(str,'&');
     char *ptr3 = strstr(str,"name=");
-
-    if(ptr1 != NULL && ptr3 != NULL)
+    if(ptr1 != NULL && ptr2!=NULL && ptr3 != NULL)
     {
       if(ptr3 = ptr2 + 1)
       {
         strncpy(id,ptr1+3,ptr2-ptr1-3);
         strcpy(name,ptr3+5);
-      }
-      else
-      {
-        strncpy(name,ptr3+5,ptr2-ptr3-5);
-        strcpy(id,ptr1+3);
       }
     }
     else if(ptr1 != NULL) //只有id
@@ -166,12 +179,7 @@ int get_name_id(char *str, char *name, char *id)
       strcpy(name,ptr3+5);
       id = NULL;
     }
-    else //视为不合法请求
-    {
-      name = NULL;
-      id = NULL;
-    }
-    return 1;
+    return 1; 
 }
 
 int match_name_id(char* name, char* id, char* res)
