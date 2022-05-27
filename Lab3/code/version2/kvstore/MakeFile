@@ -1,0 +1,5 @@
+client:
+	g++ resp.hxx client.cxx -O2 -pthread -o client
+
+clean:
+	rm client
