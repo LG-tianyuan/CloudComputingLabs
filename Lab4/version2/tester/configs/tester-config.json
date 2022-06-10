@@ -1,0 +1,102 @@
+{
+    "directory": "/mnt/e/Share_dir/share2/CloudComputingLabs/Lab4/version2/kvstore/build",
+    "build": "make",
+    "clean": "make clean",
+    "web": {
+        "bin": "./../../httpserver/httpserver",
+        "arguments": {
+            "ip": "127.0.0.1",
+            "port": 8880,
+            "threads":8,
+            "config_path": "./../../httpserver/server.conf"
+        }
+    },
+    "stores": [
+        {
+            "bin": "./kvstore/kvstoresystem",
+            "arguments": [      
+                "./kvstore/configs/cluster1/server2.conf",
+                "./kvstore/configs/cluster1/server3.conf",
+                "./kvstore/configs/cluster1/server4.conf",
+                "./kvstore/configs/cluster1/server1.conf"
+            ],
+            "vnics": [
+                "192.168.22.101/24",
+                "192.168.22.102/24",
+                "192.168.22.103/24",
+                "192.168.22.104/24"
+            ]
+        },
+        {
+            "bin": "./kvstore/kvstoresystem",
+            "arguments": [
+                "./kvstore/configs/cluster2/server2.conf",
+                "./kvstore/configs/cluster2/server3.conf",
+                "./kvstore/configs/cluster2/server4.conf",
+                "./kvstore/configs/cluster2/server1.conf"
+            ],
+            "vnics": [
+                "192.168.22.201/24",
+                "192.168.22.202/24",
+                "192.168.22.203/24",
+                "192.168.22.204/24"
+            ]
+        }
+    ],
+    "load-balancer": {
+        "enable": false,
+        "bin": "./load-balancer",
+        "arguments": [
+            {
+                "ip": "127.0.0.1",
+                "port": 8080,
+                "config_path": "./configs/load-balancer/webs.conf"
+            }
+        ],
+        "webs": [
+            {
+                "bin": "./web/web-server",
+                "arguments": {
+                    "ip": "192.168.21.101",
+                    "port": 8081,
+                    "config_path": "./configs/web/stores.conf"
+                }
+            },
+            {
+                "bin": "./web/web-server",
+                "arguments": {
+                    "ip": "192.168.21.102",
+                    "port": 8082,
+                    "config_path": "./configs/web/stores.conf"
+                }
+            }
+        ],
+        "vnics": [
+            "192.168.21.101/24",
+            "192.168.21.102/24"
+        ]
+    },
+    "wait_seconds": 1,
+    "items": {
+        "basic": {
+            "performance": [
+                {
+                    "choose": {
+                        "path": "/api/choose",
+                        "requests": 100,
+                        "concurrency": 10,
+                        "postdata": "./data/requests/choose.txt",
+                        "port": 9000
+                    },
+                    "drop": {
+                        "path": "/api/drop",
+                        "requests": 100,
+                        "concurrency": 10,
+                        "postdata": "./data/requests/drop.txt",
+                        "port": 9001
+                    }
+                }
+            ]
+        }
+    }
+}

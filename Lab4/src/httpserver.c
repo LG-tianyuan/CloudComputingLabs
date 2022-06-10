@@ -1,6 +1,7 @@
 /*
  * @Author: LG.tianyuan
  * @Date: 2022-05-26
+ * @Update: 2022-06-01
 */
 
 #include <stdio.h>
@@ -18,27 +19,23 @@
 #include <getopt.h>
 #include <regex.h>
 #include <netdb.h>
-#include <vector>
 #include <assert.h>
 #include <sys/epoll.h>
-#include <string>
 #include "threadpool.h"
 
 #define MAXSIZE 2000
 
-using namespace std;
-
-static const char *search_format="^/api/search/(course\?(id=[0-9a-zA-Z]+)|(all))|(student\?id=[0-9]+)$";
-static const char *post_data_format="^\\{\"student_id\":\"?[0-9]+\"?,\"course_id\":\"?[0-9a-zA-Z]+\"?\\}$";
+static const char *search_format="^/api/search/(course[\?]id=[0-9a-zA-Z]+)|(course[\?]all)|(student[\?]id=[0-9]+)$";
+static const char *post_data_format="^\\{\"student_id\":[\"]?[0-9]+[\"]?,\"course_id\":[\"]?[0-9a-zA-Z]+[\"]?\\}$";
 
 char *file;
 
 typedef struct {
   int num;  //集群主机个数
-  int cfd[10];  //用于连接各主机的套接字
-  bool is_alive[10]; //记录连接是否断开
-  vector<int> port;  //对应连接每个主机套接字端口
-  vector<string> ip;  //每个主机的ip
+  int cfd[5];  //用于连接各主机的套接字
+  int is_alive[5]; //记录连接是否断开
+  int port[5];    //对应连接每个主机套接字端口
+  char* ip[5];    //每个主机的ip
 } ClusterInfo;
 
 typedef struct {
@@ -48,12 +45,12 @@ typedef struct {
   ClusterInfo cluster2;
 } ConnectInfo;
 
-void Connect_to_Server(ClusterInfo& cluster,int i){
+void Connect_to_Server(ClusterInfo* cluster,int i){
     struct sockaddr_in remote_addr;
     bzero(&remote_addr,sizeof(remote_addr));
     remote_addr.sin_family = AF_INET;
-    remote_addr.sin_addr.s_addr = inet_addr(cluster.ip[i].c_str());
-    remote_addr.sin_port = htons(cluster.port[i]);
+    remote_addr.sin_addr.s_addr = inet_addr(cluster->ip[i]);
+    remote_addr.sin_port = htons(cluster->port[i]);
 
     int client_sockfd;
     if((client_sockfd=socket(AF_INET,SOCK_STREAM,0))<0){
@@ -61,12 +58,12 @@ void Connect_to_Server(ClusterInfo& cluster,int i){
     }
     if(connect(client_sockfd,(const struct sockaddr *)&remote_addr,sizeof(remote_addr))<0)
     {
-        printf("Connect to %s:%d failed!\n",cluster.ip[i].c_str(),cluster.port[i]);
-        cluster.is_alive[i] = false;
+        printf("Connect to %s:%d failed!\n",cluster->ip[i],cluster->port[i]);
+        cluster->is_alive[i] = 0;
     }else{
-        cluster.cfd[i] = client_sockfd;
-        printf("Connect to %s:%d Successfully!\n",cluster.ip[i].c_str(),cluster.port[i]);
-        cluster.is_alive[i] = true;
+        cluster->cfd[i] = client_sockfd;
+        printf("Connect to %s:%d Successfully!\n",cluster->ip[i],cluster->port[i]);
+        cluster->is_alive[i] = 1;
     }
 }
 
@@ -76,12 +73,16 @@ void load_conf(char* file, ConnectInfo* cinfo){
         printf("can not open file\n");
         exit(0);
     }
+    cinfo->cluster1.num = 0;
+    cinfo->cluster2.num = 0;
     char line[1000]={'\0'};
     int cnt = 0;
+    int i = 0;
     while(!feof(fp)){
         fgets(line,1000,fp);
         if(line[0]!='!'){
             if(line[0]=='s'){
+              i = 0;
               cnt++;
             }
             char temp1[30]={'\0'},temp2[30]={'\0'};
@@ -95,16 +96,16 @@ void load_conf(char* file, ConnectInfo* cinfo){
             if(temp2[len-1]=='\n'){
               temp2[len-1]='\0';
             }
-            string str(temp1);
             if(cnt == 1){
-              cinfo->cluster1.ip.push_back(str);
-              cinfo->cluster1.port.push_back(atoi(temp2));
+              strcpy(cinfo->cluster1.ip[i],temp1);
+              cinfo->cluster1.port[i] = atoi(temp2);
               cinfo->cluster1.num++;
             }else{
-              cinfo->cluster2.ip.push_back(str);
-              cinfo->cluster2.port.push_back(atoi(temp2));
+              strcpy(cinfo->cluster2.ip[i],temp1);
+              cinfo->cluster2.port[i] = atoi(temp2);
               cinfo->cluster2.num++;
             }
+            i++;
         }
     }
     fclose(fp);
@@ -136,7 +137,7 @@ int get_search_info(char *str, char *object,char *type,char *id)
 {
     regex_t reg1;
     int reg = regcomp(&reg1, search_format, REG_EXTENDED);
-    if(reg)
+    if(reg==0)
     {
       regmatch_t pmatch[1];
       const size_t nmatch = 1;
@@ -163,7 +164,7 @@ int data_format_match(char* text)
 {
   regex_t reg1;
   int reg = regcomp(&reg1, post_data_format, REG_EXTENDED);
-  if(!reg)
+  if(reg)
   {
     char* ptr1 = strstr(text,"{\"student_id\":");
     char* ptr2 = strstr(text,",\"course_id\":");
@@ -234,8 +235,8 @@ void send_error(int cfd, char* protocol,char* msg)
 {
   char buff[1024]={'\0'};
   sprintf(buff,"{\"status\":\"error\",\"message\":\"");
-  sprintf(buff+strlen(buff),"%s\r\n",msg);
-  sprintf(buff+strlen(buff),"\"}");
+  sprintf(buff+strlen(buff),"%s",msg);
+  sprintf(buff+strlen(buff),"\"}\r\n");
   char title[30]={'\0'},type[30]={'\0'};
   strcpy(title,"Forbidden");
   strcpy(type,"application/json");
@@ -247,7 +248,7 @@ void send_error(int cfd, char* protocol,char* msg)
 void send_success_message(int cfd, char* protocol)
 {
   char buff[50]={'\0'};
-  sprintf(buff,"{\"status\":\"ok\"}");
+  sprintf(buff,"{\"status\":\"ok\"}\r\n");
   char title[30]={'\0'},type[30]={'\0'};
   strcpy(title,"OK");
   strcpy(type,"application/json");
@@ -260,8 +261,8 @@ void send_response_data(int cfd,char* protocol,char* msg)
 {
   char buff[1024]={'\0'};
   sprintf(buff,"{\"status\":\"ok\",\"data\":\"");
-  sprintf(buff+strlen(buff),"%s\r\n",msg);
-  sprintf(buff+strlen(buff),"\"}");
+  sprintf(buff+strlen(buff),"%s",msg);
+  sprintf(buff+strlen(buff),"\"}\r\n");
   char title[30]={'\0'},type[30]={'\0'};
   strcpy(title,"OK");
   strcpy(type,"application/json");
@@ -270,29 +271,29 @@ void send_response_data(int cfd,char* protocol,char* msg)
   send(cfd, "\r\n", 2, 0);
 }
 
-void send_and_recv(ClusterInfo& cluster,char* text,int type,char* protocol){
+void send_and_recv(ClusterInfo* cluster,int cfd,char* text,int type,char* protocol){
   char* buff = (char*)malloc(25600*sizeof(char));
   char* result = (char*)malloc(25600*sizeof(char));
-  bool is_send = false;
-  for(int i=0;i<cluster.num;i++){
-      if(!cluster.is_alive[i]){//如果已断开，尝试重连
+  int is_send = 0;
+  for(int i=0;i<cluster->num;i++){
+      if(!cluster->is_alive[i]){//如果已断开，尝试重连
           Connect_to_Server(cluster,i);
       }
-      if(cluster.is_alive[i]){ //连接未断开才向该主机发信息
-          int isclosed = send(cluster.cfd[i],buff,strlen(buff),0);
+      if(cluster->is_alive[i]){ //连接未断开才向该主机发信息
+          int isclosed = send(cluster->cfd[i],text,strlen(text),0);
           if(isclosed == -1){
-              cluster.is_alive[i] = false;
+              cluster->is_alive[i] = 0;
               continue;
           }
           struct timeval timeout = {2,0}; //定时2秒
-          setsockopt(cluster.cfd[i], SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout));
+          setsockopt(cluster->cfd[i], SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout));
           char temp[1024] = {'\0'};
-          int len = recv(cluster.cfd[i],temp,1024,0);
+          int len = recv(cluster->cfd[i],temp,1024,0);
           if(len>0){  //正常接收到回复
-              strcat(buff,temp);
+              strcpy(buff,temp);
               while(len == 1024)  //全部读取缓冲区内容
               {
-                len = recv(cluster.cfd[i],temp,1024,0);
+                len = recv(cluster->cfd[i],temp,1024,0);
                 strcat(buff,temp);
               }
               char line[1024]={'\0'};
@@ -312,13 +313,14 @@ void send_and_recv(ClusterInfo& cluster,char* text,int type,char* protocol){
                       strcat(result,",\"selected\":");
                       strcat(result,selected);
                       strcat(result,"}");
-                      send_response_data(cluster.cfd[i],protocol,result);
+                      send_response_data(cfd,protocol,result);
                   }else if(strncasecmp("403",line,3)==0){
                       len = read_line(buff+bias,line);
+                      // printf("%s",line);
                       if(line[len-1]=='\n'){
                         line[len-1] = '\0';
                       }
-                      send_error(cluster.cfd[i],protocol,line);
+                      send_error(cfd,protocol,line);
                   }
               }else if(type == 2){ //GET Course all
                   if(strncasecmp("200",line,3)==0){
@@ -344,13 +346,13 @@ void send_and_recv(ClusterInfo& cluster,char* text,int type,char* protocol){
                           strcat(result,"},");
                       }
                       strcat(result,"]");
-                      send_response_data(cluster.cfd[i],protocol,result);
+                      send_response_data(cfd,protocol,result);
                   }else if(strncasecmp("403",line,3)==0){
                       len = read_line(buff+bias,line);
                       if(line[len-1]=='\n'){
                         line[len-1] = '\0';
                       }
-                      send_error(cluster.cfd[i],protocol,line);
+                      send_error(cfd,protocol,line);
                   }
               }else if(type == 3){  //GET Student id
                   if(strncasecmp("200",line,3)==0){
@@ -384,27 +386,28 @@ void send_and_recv(ClusterInfo& cluster,char* text,int type,char* protocol){
                           strcat(result,"},");
                       }
                       strcat(result,"]}");
+                      send_response_data(cfd,protocol,result);
                   }else if(strncasecmp("403",line,3)==0){
                       len = read_line(buff+bias,line);
                       if(line[len-1]=='\n'){
                         line[len-1] = '\0';
                       }
-                      send_error(cluster.cfd[i],protocol,line);
+                      send_error(cfd,protocol,line);
                   }
               }else if(type == 4){  //ADD or Drop
                   if(strncasecmp("+OK",line,3)==0){
-                      send_success_message(cluster.cfd[i],protocol);
+                      send_success_message(cfd,protocol);
                   }else if(strncasecmp("-ERROR",line,6)==0){
                       len = read_line(buff+bias,line);
                       if(line[len-1]=='\n'){
                         line[len-1] = '\0';
                       }
-                      send_error(cluster.cfd[i],protocol,line);
+                      send_error(cfd,protocol,line);
                   }
               }
-              is_send = true;
+              is_send = 1;
           }else if(len == 0){ //连接断开
-              cluster.is_alive[i]=false;
+              cluster->is_alive[i]=0;
           }//len为-1时，超时，表明当前主机非领导者
       }
       if(is_send){
@@ -421,23 +424,21 @@ void get_method(ConnectInfo* cinfo, int cfd, char* path, char* protocol, char* o
   if(strcmp(object,"course")==0&&strcmp(type,"id")==0){
     strcpy(buff,"GET Course ");
     strcat(buff,id);
-    strcat(buff,"\n");
     //send message to kvstore server
-    send_and_recv(cinfo->cluster1,buff,1,protocol);
+    send_and_recv(&cinfo->cluster1,cfd,buff,1,protocol);
   }
   else if(strcmp(object,"course")==0&&strcmp(type,"all")==0){
-    strcpy(buff,"GET Course all\n");
+    strcpy(buff,"GET Course all");
     //send message to kvstore server
-    send_and_recv(cinfo->cluster2,buff,2,protocol);
+    send_and_recv(&cinfo->cluster2,cfd,buff,2,protocol);
   }else if(strcmp(object,"student")==0&&strcmp(type,"id")==0){
     strcpy(buff,"GET Student ");
     strcat(buff,id);
-    strcat(buff,"\n");
     //send message to kvstore server
     if(strcmp(id,"202208011050")>0){
-      send_and_recv(cinfo->cluster2,buff,3,protocol);
+      send_and_recv(&cinfo->cluster2,cfd,buff,3,protocol);
     }else{
-      send_and_recv(cinfo->cluster1,buff,3,protocol);
+      send_and_recv(&cinfo->cluster1,cfd,buff,3,protocol);
     }
   }else{
     char msg[30]={'\0'};
@@ -459,11 +460,10 @@ void post_method(ConnectInfo* cinfo, int cfd, char* path, char* text, char* prot
       strcat(buff,sid);
       strcat(buff," ");
       strcat(buff,cid);
-      strcat(buff,"\n");
       if(strcmp(sid,"202208011050")>0){
-        send_and_recv(cinfo->cluster2,buff,4,protocol);
+        send_and_recv(&cinfo->cluster2,cfd,buff,4,protocol);
       }else{
-        send_and_recv(cinfo->cluster1,buff,4,protocol);
+        send_and_recv(&cinfo->cluster1,cfd,buff,4,protocol);
       }
     }
     else
@@ -483,11 +483,10 @@ void post_method(ConnectInfo* cinfo, int cfd, char* path, char* text, char* prot
       strcat(buff,sid);
       strcat(buff," ");
       strcat(buff,cid);
-      strcat(buff,"\n");
       if(strcmp(sid,"202208011050")>0){
-        send_and_recv(cinfo->cluster2,buff,4,protocol);
+        send_and_recv(&cinfo->cluster2,cfd,buff,4,protocol);
       }else{
-        send_and_recv(cinfo->cluster1,buff,4,protocol);
+        send_and_recv(&cinfo->cluster1,cfd,buff,4,protocol);
       }
     }
     else
@@ -523,12 +522,17 @@ void *http_handler(void *args)
   int cfd = para->cfd;
   int epfd = para->epfd;
 
+  for(int i = 0; i < 5; i++){
+    para->cluster1.ip[i] = malloc(20*sizeof(char));
+    para->cluster2.ip[i] = malloc(20*sizeof(char));
+  }
+
   load_conf(file,para);
   for(int i = 0; i < para->cluster1.num; i++){
-    Connect_to_Server(para->cluster1,i);
+    Connect_to_Server(&para->cluster1,i);
   }
   for(int i = 0; i < para->cluster2.num; i++){
-    Connect_to_Server(para->cluster2,i);
+    Connect_to_Server(&para->cluster2,i);
   }
 
   struct timeval timeout = {0, 1000};
@@ -595,6 +599,10 @@ void *http_handler(void *args)
       strcpy(msg,"invalid query string");
       send_error(cfd,protocol,msg);
     }
+  }
+  for(int i = 0; i < 5; i++){
+    free(para->cluster1.ip[i]);
+    free(para->cluster2.ip[i]);
   }
   // close(cfd);
   disconnect(cfd,epfd);
@@ -747,7 +755,8 @@ int main(int argc, char *argv[])
                 }
                 count++;
             } 
-            else if(count>0)
+            else
+            // else if(count>0)
             {
                 ConnectInfo *cinfo = (ConnectInfo*)malloc(sizeof(ConnectInfo));
                 cinfo->cfd = event[i].data.fd;

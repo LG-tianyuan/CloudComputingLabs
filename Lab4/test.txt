@@ -1,0 +1,18 @@
+#curl
+curl -i -X GET http://127.0.0.1:8080/api/search/course?id=AR03015
+curl -i -X GET http://127.0.0.1:8080/api/search/course?all
+curl -i -X GET http://127.0.0.1:8080/api/search/student?id=202208010116
+curl -i -d '{"student_id":202208010116,"course_id":AR03015}' -X POST http://127.0.0.1:8080/api/choose
+curl -i -d '{"student_id":202208010116,"course_id":AR03015}' -X POST http://127.0.0.1:8080/api/drop
+#httpserver
+./httpserver --ip 127.0.0.1 --port 8080 --threads 8 --config_path server.conf
+#kvstore
+./kvstoresystem --id 2 --ip_port 127.0.0.1:8002 --socket_port 9302
+./kvstoresystem --id 3 --ip_port 127.0.0.1:8003 --socket_port 9303
+./kvstoresystem --id 4 --ip_port 127.0.0.1:8004 --socket_port 9304
+./kvstoresystem --id 1 --ip_port 127.0.0.1:8001 --socket_port 9301 --config_path server1.conf
+
+./kvstoresystem --id 2 --ip_port 127.0.0.1:8006 --socket_port 9052
+./kvstoresystem --id 3 --ip_port 127.0.0.1:8007 --socket_port 9053
+./kvstoresystem --id 4 --ip_port 127.0.0.1:8008 --socket_port 9054
+./kvstoresystem --id 1 --ip_port 127.0.0.1:8005 --socket_port 9051 --config_path server2.conf

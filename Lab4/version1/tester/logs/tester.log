@@ -1,0 +1,113 @@
+2022-06-08 23:47:59 [TRACE] Checking tools...
+2022-06-08 23:47:59 [TRACE] Checking tools finished.
+2022-06-08 23:47:59 [TRACE] Building system...
+2022-06-08 23:47:59 [TRACE] Building system finished.
+2022-06-08 23:47:59 [TRACE] Waiting in 5s for the server to start...
+2022-06-08 23:48:04 [WARN ] Setting up all vnics...
+2022-06-08 23:48:04 [TRACE] Waiting in 5s for the server to start...
+2022-06-08 23:48:09 [TRACE] Waiting in 5s for the server to start...
+2022-06-08 23:48:14 [TRACE] Waiting in 5s for the server to start...
+2022-06-08 23:48:19 [TRACE] Waiting in 5s for the server to start...
+2022-06-08 23:48:24 [TRACE] Waiting in 5s for the server to start...
+2022-06-08 23:48:29 [TRACE] Waiting in 5s for the server to start...
+2022-06-08 23:48:34 [TRACE] Waiting in 5s for the server to start...
+2022-06-08 23:48:39 [TRACE] Waiting in 5s for the server to start...
+2022-06-08 23:48:44 [TRACE] Testing performance...
+2022-06-08 23:50:19 [TRACE] ab-go choose stdout output:
+#AB-GO testing tool. 
+
+ Testing app.  
+ Results: 
+ 
+	Requests:		 100
+	Failed requests:	 6
+	Duration:		 94448.764ms
+	Rps:			 2rps
+	Min:			 507.528ms
+	Max:			 10040.084ms
+	Avg:			 6957.288ms
+2022-06-08 23:50:19 [TRACE] ab-go drop stdout output:
+#AB-GO testing tool. 
+
+ Testing app.  
+ Results: 
+ 
+	Requests:		 100
+	Failed requests:	 6
+	Duration:		 90436.549ms
+	Rps:			 2rps
+	Min:			 1008.871ms
+	Max:			 10532.341ms
+	Avg:			 6495.354ms
+2022-06-08 23:50:19 [TRACE] Testing performance finished.
+2022-06-08 23:50:19 [WARN ] Trying to kill the server...
+2022-06-08 23:50:19 [TRACE] Waiting in 1s for server to stop...
+2022-06-08 23:50:20 [TRACE] The server is stopped.
+2022-06-08 23:50:20 [WARN ] Trying to kill the server...
+2022-06-08 23:50:20 [TRACE] Waiting in 1s for server to stop...
+2022-06-08 23:50:21 [TRACE] The server is stopped.
+2022-06-08 23:50:21 [WARN ] Trying to kill the server...
+2022-06-08 23:50:21 [TRACE] Waiting in 1s for server to stop...
+2022-06-08 23:50:22 [TRACE] The server is stopped.
+2022-06-08 23:50:22 [WARN ] Trying to kill the server...
+2022-06-08 23:50:22 [TRACE] Waiting in 1s for server to stop...
+2022-06-08 23:50:23 [TRACE] The server is stopped.
+2022-06-08 23:50:23 [WARN ] Trying to kill the server...
+2022-06-08 23:50:23 [TRACE] Waiting in 1s for server to stop...
+2022-06-08 23:50:24 [TRACE] The server is stopped.
+2022-06-08 23:50:24 [WARN ] Trying to kill the server...
+2022-06-08 23:50:24 [TRACE] Waiting in 1s for server to stop...
+2022-06-08 23:50:25 [TRACE] The server is stopped.
+2022-06-08 23:50:25 [WARN ] Trying to kill the server...
+2022-06-08 23:50:25 [TRACE] Waiting in 1s for server to stop...
+2022-06-08 23:50:26 [TRACE] The server is stopped.
+2022-06-08 23:50:26 [WARN ] Trying to kill the server...
+2022-06-08 23:50:26 [TRACE] Waiting in 1s for server to stop...
+2022-06-08 23:50:27 [TRACE] The server is stopped.
+2022-06-08 23:50:27 [WARN ] Trying to kill the server...
+2022-06-08 23:50:27 [TRACE] Waiting in 1s for server to stop...
+2022-06-08 23:50:28 [TRACE] The server is stopped.
+2022-06-08 23:50:28 [WARN ] Removing up all vnics...
+2022-06-08 23:50:28 [WARN ] Removing virtual nic lo:01 error: SIOCSIFFLAGS: Cannot assign requested address
+.
+2022-06-08 23:50:28 [WARN ] Removing virtual nic lo:02 error: SIOCSIFFLAGS: Cannot assign requested address
+.
+2022-06-08 23:50:28 [WARN ] Removing virtual nic lo:03 error: SIOCSIFFLAGS: Cannot assign requested address
+.
+2022-06-08 23:50:28 [WARN ] Removing virtual nic lo:10 error: SIOCSIFFLAGS: Cannot assign requested address
+.
+2022-06-08 23:50:28 [WARN ] Removing virtual nic lo:11 error: SIOCSIFFLAGS: Cannot assign requested address
+.
+2022-06-08 23:50:28 [WARN ] Removing virtual nic lo:12 error: SIOCSIFFLAGS: Cannot assign requested address
+.
+2022-06-08 23:50:28 [WARN ] Removing virtual nic lo:13 error: SIOCSIFFLAGS: Cannot assign requested address
+.
+2022-06-08 23:50:28 [INFO ] -------TESTER RESULTS------
+2022-06-08 23:50:28 [INFO ] Perfermance test 1 times.
+2022-06-08 23:50:28 [INFO ] No.1 choose:
+#AB-GO testing tool. 
+
+ Testing app.  
+ Results: 
+ 
+	Requests:		 100
+	Failed requests:	 6
+	Duration:		 94448.764ms
+	Rps:			 2rps
+	Min:			 507.528ms
+	Max:			 10040.084ms
+	Avg:			 6957.288ms
+2022-06-08 23:50:28 [INFO ] No.1 drop:
+#AB-GO testing tool. 
+
+ Testing app.  
+ Results: 
+ 
+	Requests:		 100
+	Failed requests:	 6
+	Duration:		 90436.549ms
+	Rps:			 2rps
+	Min:			 1008.871ms
+	Max:			 10532.341ms
+	Avg:			 6495.354ms
+2022-06-08 23:50:28 [INFO ] -------TESTER RESULTS------
